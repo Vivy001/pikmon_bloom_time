@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>六路多工計時看板 - 附結束時間</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', "Microsoft JhengHei", sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 頂部時鐘 */
+        .header-clock {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 2px solid #333;
+            width: 100%;
+            max-width: 600px;
+        }
+        #mainClock { font-size: 50px; font-weight: bold; color: #00d4ff; margin: 0; }
+        #mainDate { font-size: 18px; color: #888; }
+
+        /* 網格佈局 */
+        .timer-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* 計時器卡片 */
+        .timer-card {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .timer-card:hover { transform: translateY(-5px); border-color: #00d4ff; }
+
+        .card-title {
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 5px;
+            font-weight: bold;
+            display: block;
+            min-height: 24px;
+        }
+
+        .time-display {
+            font-size: 45px;
+            color: #ffcc00;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0 5px 0;
+        }
+
+        /* 預計結束時間樣式 */
+        .end-time-label {
+            font-size: 14px;
+            color: #00ffaa;
+            margin-bottom: 15px;
+            min-height: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        input {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background: #2a2a2a;
+            color: white;
+            text-align: center;
+            outline: none;
+        }
+
+        button {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #00d4ff;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover { background-color: #0099cc; }
+
+        @media (max-width: 900px) { .timer-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .timer-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <div class="header-clock">
+        <div id="mainClock">00:00:00</div>
+        <div id="mainDate">載入中...</div>
+    </div>
+
+    <div class="timer-grid" id="gridContainer"></div>
+
+    <script>
+        // 1. 系統主時鐘
+        function updateMainClock() {
+            const now = new Date();
+            document.getElementById('mainClock').textContent = now.toLocaleTimeString('zh-TW', { hour12: false });
+            document.getElementById('mainDate').textContent = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+        }
+        setInterval(updateMainClock, 1000);
+        updateMainClock();
+
+        // 2. 初始化 6 個計時器
+        const grid = document.getElementById('gridContainer');
+        const timerIntervals = [];
+
+        for (let i = 1; i <= 6; i++) {
+            const card = document.createElement('div');
+            card.className = 'timer-card';
+            card.innerHTML = `
+                <span class="card-title" id="title-${i}">任務 ${i}</span>
+                <div class="time-display" id="display-${i}">00:00</div>
+                <div class="end-time-label" id="endTime-${i}"></div>
+                <div class="input-group">
+                    <input type="text" id="note-${i}" placeholder="輸入備註內容" oninput="syncTitle(${i})">
+                    <input type="number" id="mins-${i}" placeholder="分鐘" min="0" value="0">
+                    <button onclick="startTimer(${i})">開始 (加5分鐘)</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        }
+
+        function syncTitle(id) {
+            const val = document.getElementById(`note-${id}`).value;
+            document.getElementById(`title-${id}`).textContent = val || `任務 ${id}`;
+        }
+
+        // 3. 計時核心邏輯
+        function startTimer(id) {
+            if (timerIntervals[id]) clearInterval(timerIntervals[id]);
+
+            const note = document.getElementById(`note-${id}`).value || `任務 ${id}`;
+            let inputMins = parseInt(document.getElementById(`mins-${id}`).value);
+            if (isNaN(inputMins)) inputMins = 0;
+
+            // 計算總秒數 (輸入 + 5分鐘)
+            let totalSeconds = (inputMins + 5) * 60;
+
+            // --- 新增：計算並顯示預計結束時間 ---
+            const now = new Date();
+            const finishTime = new Date(now.getTime() + totalSeconds * 1000);
+            const finishString = finishTime.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById(`endTime-${id}`).textContent = `預計結束：${finishString}`;
+
+            updateDisplay(id, totalSeconds);
+
+            timerIntervals[id] = setInterval(() => {
+                totalSeconds--;
+                if (totalSeconds <= 0) {
+                    clearInterval(timerIntervals[id]);
+                    updateDisplay(id, 0);
+                    document.getElementById(`endTime-${id}`).textContent = "任務已完成";
+                    alert(`【${note}】時間到囉！`);
+                } else {
+                    updateDisplay(id, totalSeconds);
+                }
+            }, 1000);
+        }
+
+        function updateDisplay(id, seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            document.getElementById(`display-${id}`).textContent = 
+                `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>
