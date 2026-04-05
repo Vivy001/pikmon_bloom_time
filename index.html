@@ -3,11 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>六路多工計時看板 - 附結束時間</title>
+    <title>皮克敏蘑菇倒數計時器</title>
     <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-blue: #38bdf8;
+            --accent-yellow: #fbbf24;
+            --accent-green: #4ade80;
+            --text-main: #f1f5f9;
+        }
+
         body {
-            background-color: #121212;
-            color: #e0e0e0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
             font-family: 'Segoe UI', "Microsoft JhengHei", sans-serif;
             margin: 0;
             padding: 20px;
@@ -16,99 +25,162 @@
             align-items: center;
         }
 
-        /* 頂部時鐘 */
-        .header-clock {
+        /* 頂部標題區塊 */
+        .page-header {
             text-align: center;
             margin-bottom: 30px;
-            padding: 20px;
-            border-bottom: 2px solid #333;
+            padding: 25px;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 20px;
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid #334155;
         }
-        #mainClock { font-size: 50px; font-weight: bold; color: #00d4ff; margin: 0; }
-        #mainDate { font-size: 18px; color: #888; }
+        .main-title {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--accent-green);
+            margin: 0 0 15px 0;
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
+        }
+        #mainClock { font-size: 50px; font-weight: 800; color: var(--accent-blue); margin: 0; font-family: monospace; }
+        #mainDate { font-size: 18px; color: #94a3b8; margin-top: 5px; }
 
-        /* 網格佈局 */
         .timer-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            gap: 25px;
             width: 100%;
-            max-width: 1200px;
+            max-width: 1300px;
         }
 
-        /* 計時器卡片 */
         .timer-card {
-            background-color: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 15px;
-            padding: 20px;
+            background-color: var(--card-bg);
+            border: 1px solid #334155;
+            border-radius: 24px;
+            padding: 25px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            transition: transform 0.2s;
-            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .timer-card:hover { transform: translateY(-5px); border-color: #00d4ff; }
+        .timer-card:hover { border-color: var(--accent-blue); transform: translateY(-8px); }
 
         .card-title {
-            font-size: 18px;
+            font-size: 22px;
             color: #fff;
-            margin-bottom: 5px;
+            margin-bottom: 12px;
             font-weight: bold;
-            display: block;
-            min-height: 24px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 10px;
         }
 
         .time-display {
-            font-size: 45px;
-            color: #ffcc00;
+            font-size: 48px;
+            color: var(--accent-yellow);
             font-family: 'Courier New', monospace;
-            margin: 10px 0 5px 0;
+            margin: 15px 0 5px 0;
+            font-weight: bold;
         }
 
-        /* 預計結束時間樣式 */
         .end-time-label {
-            font-size: 14px;
-            color: #00ffaa;
-            margin-bottom: 15px;
-            min-height: 20px;
+            font-size: 15px;
+            color: var(--accent-green);
+            margin-bottom: 8px;
+            height: 22px;
+            font-weight: 500;
+        }
+
+        /* 紅色警語放大優化 */
+        .warning-text {
+            color: #ff4444;
+            font-size: 15px; /* 放大字體 */
+            font-weight: 900; /* 加粗 */
+            margin-bottom: 20px;
+            min-height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.5;
+            background: rgba(255, 68, 68, 0.1); /* 加入淡淡的紅色底色增加視覺壓力 */
+            border-radius: 8px;
+            padding: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.98); }
+            100% { opacity: 1; transform: scale(1); }
         }
 
         .input-group {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 12px;
         }
 
-        input {
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #444;
-            background: #2a2a2a;
+        .note-input {
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            background: #0f172a;
             color: white;
             text-align: center;
+            font-size: 16px;
+        }
+
+        .time-input-wrap {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .time-unit {
+            width: 50px;
+            background: transparent;
+            border: none;
+            color: var(--accent-yellow);
+            font-size: 24px;
+            text-align: center;
+            font-family: monospace;
             outline: none;
+        }
+        .time-unit::placeholder { color: #475569; opacity: 0.6; }
+        .time-sep { color: #475569; font-weight: bold; font-size: 20px; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
         }
 
         button {
-            padding: 10px;
-            border-radius: 5px;
+            flex: 1;
+            padding: 14px;
+            border-radius: 10px;
             border: none;
-            background-color: #00d4ff;
-            color: #000;
             font-weight: bold;
+            font-size: 16px;
             cursor: pointer;
             transition: 0.2s;
         }
-        button:hover { background-color: #0099cc; }
+        .btn-start { background-color: var(--accent-blue); color: #000; }
+        .btn-reset { background-color: #475569; color: white; }
+        button:hover:not(:disabled) { opacity: 0.9; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+        button:disabled { background-color: #1e293b; color: #475569; cursor: not-allowed; }
 
-        @media (max-width: 900px) { .timer-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 600px) { .timer-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 1000px) { .timer-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 650px) { .timer-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-    <div class="header-clock">
+    <div class="page-header">
+        <h1 class="main-title">🍄 皮克敏蘑菇倒數計時器 🍄</h1>
         <div id="mainClock">00:00:00</div>
         <div id="mainDate">載入中...</div>
     </div>
@@ -116,7 +188,6 @@
     <div class="timer-grid" id="gridContainer"></div>
 
     <script>
-        // 1. 系統主時鐘
         function updateMainClock() {
             const now = new Date();
             document.getElementById('mainClock').textContent = now.toLocaleTimeString('zh-TW', { hour12: false });
@@ -125,7 +196,6 @@
         setInterval(updateMainClock, 1000);
         updateMainClock();
 
-        // 2. 初始化 6 個計時器
         const grid = document.getElementById('gridContainer');
         const timerIntervals = [];
 
@@ -133,60 +203,111 @@
             const card = document.createElement('div');
             card.className = 'timer-card';
             card.innerHTML = `
-                <span class="card-title" id="title-${i}">任務 ${i}</span>
-                <div class="time-display" id="display-${i}">00:00</div>
+                <span class="card-title" id="title-${i}">蘑菇 ${i}</span>
+                <div class="time-display" id="display-${i}">00:00:00</div>
                 <div class="end-time-label" id="endTime-${i}"></div>
+                
+                <div class="warning-text">時間過長，可能因玩家加入<br>使蘑菇重生時間提前</div>
+                
                 <div class="input-group">
-                    <input type="text" id="note-${i}" placeholder="輸入備註內容" oninput="syncTitle(${i})">
-                    <input type="number" id="mins-${i}" placeholder="分鐘" min="0" value="0">
-                    <button onclick="startTimer(${i})">開始 (加5分鐘)</button>
+                    <input type="text" class="note-input" id="note-${i}" placeholder="輸入備註 (如: 大火紅)" oninput="syncTitle(${i})">
+                    
+                    <div class="time-input-wrap" id="inputWrap-${i}">
+                        <input type="text" class="time-unit" id="h-${i}" maxlength="2" placeholder="hh" autocomplete="off">
+                        <span class="time-sep">:</span>
+                        <input type="text" class="time-unit" id="m-${i}" maxlength="2" placeholder="mm" autocomplete="off">
+                        <span class="time-sep">:</span>
+                        <input type="text" class="time-unit" id="s-${i}" maxlength="2" placeholder="ss" autocomplete="off">
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn-start" id="startBtn-${i}" onclick="startTimer(${i})">開始 (+5分)</button>
+                        <button class="btn-reset" onclick="resetTimer(${i})">重設</button>
+                    </div>
                 </div>
             `;
             grid.appendChild(card);
+            setupInputLogic(i);
+        }
+
+        function setupInputLogic(id) {
+            const units = ['h', 'm', 's'];
+            units.forEach((unit, idx) => {
+                const el = document.getElementById(`${unit}-${id}`);
+                el.addEventListener('keydown', function(e) {
+                    if (e.key.length === 1 && !/[0-9]/.test(e.key)) e.preventDefault();
+                });
+                el.addEventListener('input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                    if (this.value.length === 2 && idx < 2) {
+                        setTimeout(() => {
+                            const nextEl = document.getElementById(`${units[idx+1]}-${id}`);
+                            nextEl.focus();
+                            nextEl.select(); 
+                        }, 10);
+                    }
+                });
+                el.onclick = function() { this.select(); };
+            });
         }
 
         function syncTitle(id) {
             const val = document.getElementById(`note-${id}`).value;
-            document.getElementById(`title-${id}`).textContent = val || `任務 ${id}`;
+            document.getElementById(`title-${id}`).textContent = val || `蘑菇 ${id}`;
         }
 
-        // 3. 計時核心邏輯
         function startTimer(id) {
-            if (timerIntervals[id]) clearInterval(timerIntervals[id]);
+            const h = parseInt(document.getElementById(`h-${id}`).value) || 0;
+            const m = parseInt(document.getElementById(`m-${id}`).value) || 0;
+            const s = parseInt(document.getElementById(`s-${id}`).value) || 0;
 
-            const note = document.getElementById(`note-${id}`).value || `任務 ${id}`;
-            let inputMins = parseInt(document.getElementById(`mins-${id}`).value);
-            if (isNaN(inputMins)) inputMins = 0;
+            let totalSeconds = (h * 3600) + (m * 60) + s + 300;
 
-            // 計算總秒數 (輸入 + 5分鐘)
-            let totalSeconds = (inputMins + 5) * 60;
+            document.getElementById(`startBtn-${id}`).disabled = true;
+            document.getElementById(`inputWrap-${id}`).style.opacity = "0.3";
+            ['h', 'm', 's'].forEach(u => document.getElementById(`${u}-${id}`).disabled = true);
 
-            // --- 新增：計算並顯示預計結束時間 ---
-            const now = new Date();
-            const finishTime = new Date(now.getTime() + totalSeconds * 1000);
-            const finishString = finishTime.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            document.getElementById(`endTime-${id}`).textContent = `預計結束：${finishString}`;
+            const finishTime = new Date(Date.now() + totalSeconds * 1000);
+            document.getElementById(`endTime-${id}`).textContent = `預計結束：${finishTime.toLocaleTimeString('zh-TW', {hour12:false})}`;
 
             updateDisplay(id, totalSeconds);
 
+            if (timerIntervals[id]) clearInterval(timerIntervals[id]);
+            
             timerIntervals[id] = setInterval(() => {
                 totalSeconds--;
                 if (totalSeconds <= 0) {
                     clearInterval(timerIntervals[id]);
                     updateDisplay(id, 0);
-                    document.getElementById(`endTime-${id}`).textContent = "任務已完成";
-                    alert(`【${note}】時間到囉！`);
+                    document.getElementById(`endTime-${id}`).textContent = "蘑菇已成熟！";
+                    document.getElementById(`display-${id}`).style.color = "#ef4444";
+                    alert(`【${document.getElementById(`title-${id}`).textContent}】時間到囉！`);
                 } else {
                     updateDisplay(id, totalSeconds);
                 }
             }, 1000);
         }
 
-        function updateDisplay(id, seconds) {
-            const m = Math.floor(seconds / 60);
-            const s = seconds % 60;
+        function resetTimer(id) {
+            clearInterval(timerIntervals[id]);
+            document.getElementById(`display-${id}`).textContent = "00:00:00";
+            document.getElementById(`display-${id}`).style.color = "var(--accent-yellow)";
+            document.getElementById(`endTime-${id}`).textContent = "";
+            ['h', 'm', 's'].forEach(u => {
+                const el = document.getElementById(`${u}-${id}`);
+                el.value = ""; 
+                el.disabled = false;
+            });
+            document.getElementById(`startBtn-${id}`).disabled = false;
+            document.getElementById(`inputWrap-${id}`).style.opacity = "1";
+        }
+
+        function updateDisplay(id, totalSecs) {
+            const hh = Math.floor(totalSecs / 3600);
+            const mm = Math.floor((totalSecs % 3600) / 60);
+            const ss = totalSecs % 60;
             document.getElementById(`display-${id}`).textContent = 
-                `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
         }
     </script>
 </body>
