@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>皮克敏蘑菇計時器 - 極簡精煉版</title>
+    <title>皮克敏蘑菇計時器 - 醒目提醒版</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -93,6 +93,16 @@
             padding: 25px;
             text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .card-expired {
+            border: 3px solid var(--accent-red) !important;
+            animation: card-blink 0.5s infinite;
+        }
+        @keyframes card-blink {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(255, 68, 68, 0.8); }
         }
 
         .card-title {
@@ -137,14 +147,53 @@
 
         .btn-main-group { display: flex; gap: 10px; }
 
-        button { cursor: pointer; font-weight: bold; transition: 0.2s; border: none; font-size: 16px; }
+        button { cursor: pointer; font-weight: bold; transition: 0.2s; border: none; font-size: 16px; outline: none; }
         .btn-start { flex: 2; padding: 14px; background-color: var(--accent-blue); color: #000; border-radius: 10px; }
         .btn-reset { flex: 1; padding: 14px; background-color: #475569; color: white; border-radius: 10px; }
         button:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
         button:disabled { background-color: #1e293b; color: #475569; cursor: not-allowed; }
 
-        @media (max-width: 1000px) { .timer-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 650px) { .timer-grid { grid-template-columns: 1fr; } }
+        /* Modal 樣式保持不變... */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999;
+            opacity: 0; visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: var(--card-bg);
+            border: 3px solid var(--accent-red);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(255, 68, 68, 0.7);
+            max-width: 90%;
+            width: 450px;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+            animation: modal-glow 2s infinite;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        @keyframes modal-glow {
+            0%, 100% { box-shadow: 0 0 30px rgba(255, 68, 68, 0.5); }
+            50% { box-shadow: 0 0 60px rgba(255, 68, 68, 1); }
+        }
+        .modal-icon { font-size: 60px; margin-bottom: 20px; }
+        .modal-title-text { font-size: 28px; font-weight: 900; color: #fff; margin-bottom: 10px; }
+        .modal-task-name { font-size: 36px; font-weight: 900; color: var(--accent-yellow); margin-bottom: 30px; }
+        .btn-modal-close {
+            padding: 16px 50px;
+            background-color: var(--accent-red);
+            color: white;
+            border-radius: 12px;
+            font-size: 18px;
+            animation: modal-btn-pulse 1s infinite;
+        }
+        @keyframes modal-btn-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     </style>
 </head>
 <body>
@@ -159,16 +208,28 @@
         <div class="announcement-board">
             <div class="announcement-title">📢 優化與更新公告</div>
             <ul class="announcement-list">
-                <li>4/6 移除不具效益之時間微調按鈕，介面精簡化</li>
-                <li>4/6 全面支援 Enter 鍵快速啟動計時功能</li>
-                <li>4/6 修復手動輸入時自動跳格與備註同步邏輯</li>
+                <li>4/8 醒目提醒：加入全螢幕遮罩、發光特效、音效與卡片閃爍</li>
+                <li>4/8 穩定優化：提醒彈窗不再干擾其他背景計時器運行</li>
+                <li>4/8 介面修整：標題置中，公告下移，移除低效益按鈕</li>
             </ul>
         </div>
     </div>
 
     <div class="timer-grid" id="gridContainer"></div>
 
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-icon">🔔</div>
+            <div class="modal-title-text">蘑菇已成熟</div>
+            <div class="modal-task-name" id="modalTaskName">蘑菇名稱</div>
+            <button class="btn-modal-close" onclick="closeModal()">確認</button>
+        </div>
+    </div>
+
+    <audio id="alarmSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_2760636250.mp3" preload="auto"></audio>
+
     <script>
+        // JavaScript 邏輯保持不變...
         function updateMainClock() {
             const now = new Date();
             document.getElementById('mainClock').textContent = now.toLocaleTimeString('zh-TW', { hour12: false });
@@ -182,14 +243,13 @@
 
         for (let i = 1; i <= 6; i++) {
             const card = document.createElement('div');
+            card.id = `card-${i}`;
             card.className = 'timer-card';
             card.innerHTML = `
                 <span class="card-title" id="title-${i}">蘑菇 ${i}</span>
                 <div class="time-display" id="display-${i}">00:00:00</div>
                 <div class="end-time-label" id="endTime-${i}"></div>
-                
                 <div class="warning-text">時間過長，可能因玩家加入<br>使蘑菇重生時間提前</div>
-                
                 <div class="input-group">
                     <input type="text" class="note-input" id="note-${i}" placeholder="輸入備註 (如: 大火紅)" oninput="syncTitle(${i})" onkeydown="handleEnter(event, ${i})">
                     <div class="time-input-wrap" id="inputWrap-${i}">
@@ -209,9 +269,20 @@
             setupInputLogic(i);
         }
 
-        function handleEnter(e, id) {
-            if (e.key === 'Enter') startTimer(id);
+        function showModal(taskName) {
+            document.getElementById('modalTaskName').textContent = taskName;
+            document.getElementById('modalOverlay').classList.add('active');
+            const audio = document.getElementById('alarmSound');
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log('音效播放失敗'));
         }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.getElementById('alarmSound').pause();
+        }
+
+        function handleEnter(e, id) { if (e.key === 'Enter') startTimer(id); }
 
         function setupInputLogic(id) {
             const units = ['h', 'm', 's'];
@@ -240,10 +311,10 @@
         }
 
         function startTimer(id) {
+            document.getElementById(`card-${id}`).classList.remove('card-expired');
             const h = parseInt(document.getElementById(`h-${id}`).value) || 0;
             const m = parseInt(document.getElementById(`m-${id}`).value) || 0;
             const s = parseInt(document.getElementById(`s-${id}`).value) || 0;
-
             let totalSeconds = (h * 3600) + (m * 60) + s + 300; 
 
             document.getElementById(`startBtn-${id}`).disabled = true;
@@ -267,7 +338,8 @@
                     updateDisplay(id, 0);
                     document.getElementById(`endTime-${id}`).textContent = "蘑菇已成熟！";
                     document.getElementById(`display-${id}`).style.color = "#ef4444";
-                    alert(`【${document.getElementById(`title-${id}`).textContent}】時間到囉！`);
+                    document.getElementById(`card-${id}`).classList.add('card-expired');
+                    showModal(document.getElementById(`title-${id}`).textContent);
                 } else {
                     updateDisplay(id, totalSeconds);
                 }
@@ -276,6 +348,7 @@
 
         function resetTimer(id) {
             if (timerIntervals[id]) { clearInterval(timerIntervals[id]); timerIntervals[id] = null; }
+            document.getElementById(`card-${id}`).classList.remove('card-expired');
             document.getElementById(`display-${id}`).textContent = "00:00:00";
             document.getElementById(`display-${id}`).style.color = "var(--accent-yellow)";
             document.getElementById(`endTime-${id}`).textContent = "";
